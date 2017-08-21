@@ -1,0 +1,17 @@
+{
+  "name": "sds011-wrapper",
+  "version": "0.0.1",
+  "description": "Wrapper library created to simplify usage of SDS011 laser dust sensor in your projects",
+  "main": "wrapper.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "sds011"
+  ],
+  "author": "Michal Wilski",
+  "license": "MIT",
+  "dependencies": {
+    "serialport": "^5.0.0"
+  }
+}
