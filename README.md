@@ -12,6 +12,6 @@ Save your time and focus on specific IoT solution instead of serial communicatio
 ## Usage
 
 - Check the 'examples' folder.
-- See the API docs
+- See the [API docs](https://github.com/triforcely/sds011-wrapper/wiki/API)
 
 
