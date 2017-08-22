@@ -5,6 +5,8 @@ Air quality measurements made easy with wrapper library for SDS011 UART interfac
 
 Save your time and focus on specific IoT solution instead of serial communication.
 
+[![NPM](https://nodei.co/npm/sds011-wrapper.png)](https://npmjs.org/package/sds011-wrapper)
+
 ## Watch out!
 
 Nova Fitness SDS011 laser is designed for 8000 hours of continuous use - this is less than one year. It is recommended to configure [working period](https://github.com/triforcely/sds011-wrapper/wiki/API#SDS011Wrapper+setWorkingPeriod) to extend life span of your solution.
