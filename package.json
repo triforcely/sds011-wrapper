@@ -7,7 +7,12 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
-    "sds011"
+    "SDS011",
+    "IoT",
+    "air",
+    "dust",
+    "PM",
+    "UART"
   ],
   "author": "Michal Wilski",
   "license": "MIT",
