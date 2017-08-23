@@ -1,6 +1,6 @@
 {
   "name": "sds011-wrapper",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Wrapper library created to simplify usage of SDS011 laser dust sensor in your projects",
   "main": "wrapper.js",
   "scripts": {
