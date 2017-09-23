@@ -6,12 +6,44 @@ const PacketUtils = rewire("../core/packet-utils.js");
 
 describe('Packet utiliites', function () {
 
-    it('Rejects packet with wrong size (empty packet)', function () {
+    it('Rejects packet with wrong size - empty packet', function () {
         let buffer = new Buffer([]);
 
         let res = PacketUtils.verifyPacket(buffer);
 
         assert.equal(res, false);
+    });
+
+    it('Rejects packet - invalid tail and header', function () {
+        let buffer = Buffer.from([0x00, 0xC0, 0x4B, 0x00, 0x51, 0x00, 0xE9, 0x77, 0xFC, 0x00]);
+
+        let res = PacketUtils.verifyPacket(buffer);
+
+        assert.equal(res, false);
+    });
+
+    it('Accepts packet - valid tail and header', function () {
+        let buffer = Buffer.from([0xAA, 0xC0, 0x4B, 0x00, 0x51, 0x00, 0xE9, 0x77, 0xFC, 0xAB]);
+
+        let res = PacketUtils.verifyPacket(buffer);
+
+        assert.equal(res, true);
+    });
+
+    it('Rejects packet - invalid checksum', function () {
+        let buffer = Buffer.from([0xAA, 0xC0, 0x4B, 0x00, 0x50, 0x00, 0xE9, 0x77, 0xFC, 0xAB]);
+
+        let res = PacketUtils.verifyPacket(buffer);
+
+        assert.equal(res, false);
+    });
+
+    it('Accepts packet - valid checksum', function () {
+        let buffer = Buffer.from([0xAA, 0xC0, 0x4B, 0x00, 0x51, 0x00, 0xE9, 0x77, 0xFC, 0xAB]);
+
+        let res = PacketUtils.verifyPacket(buffer);
+
+        assert.equal(res, true);
     });
 
     it('Checks for header and tail - when packet is valid', function () {
