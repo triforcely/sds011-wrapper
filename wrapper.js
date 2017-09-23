@@ -1,6 +1,14 @@
 const SerialPort = require('serialport');
 const EventEmitter = require('events');
 
+const SensorState = require("./core/sensor-state.js");
+const SensorCommand = require("./core/sensor-command.js");
+
+const addChecksumToCommandArray = require("./core/packet-utils.js").addChecksumToCommandArray;
+const verifyPacket = require("./core/packet-utils.js").verifyPacket;
+
+const PacketHandlers = require("./core/packet-handlers.js");
+
 const ALLOWED_RETRIES = 10; // Number of retries allowed for single command request. 
 const COMMAND_RETRY_INTERVAL = 150; // Time between sequential retries.
 
@@ -15,16 +23,7 @@ class SDS011Wrapper extends EventEmitter {
         super();
 
         this._port = new SerialPort(portPath, { baudRate: 9600 });
-
-        this._state = {
-            workingPeriod: undefined,
-            mode: undefined,
-            isSleeping: undefined,
-            firmware: undefined,
-            pm2p5: undefined,
-            pm10: undefined,
-            closed: false
-        };
+        this._state = new SensorState();
 
         this._commandQueue = [];
         this._isCurrentlyProcessing = false;
@@ -38,89 +37,22 @@ class SDS011Wrapper extends EventEmitter {
           * Listen for incoming data and react: change internal state so queued commands know that they were completed or emit data.
           */
         this._port.on('data', (data) => {
-
-            //#region Packet handlers
-
-            /**
-            * 0xC0: PM2.5 and PM10 data
-            */
-            const handle0xC0 = (data) => {
-                var lowBytePm25 = data.readUIntBE(2, 1);
-                var highBytePm25 = data.readUIntBE(3, 1);
-
-                var pm25 = ((highBytePm25 * 256) + lowBytePm25) / 10;
-
-                var lowBytePm10 = data.readUIntBE(4, 1);
-                var highBytePm10 = data.readUIntBE(5, 1);
-
-                var pm10 = ((highBytePm10 * 256) + lowBytePm10) / 10;
-
-                this._state.pm2p5 = pm25;
-                this._state.pm10 = pm10;
-
-                if (this._state.mode == 'active')
-                    this.emit('measure', { 'PM2.5': pm25, 'PM10': pm10 });
-            }
-
-            /**
-            * 0xC5: response to commands related to configuration setting
-            */
-            const handle0xC5 = (data) => {
-                var setting = data.readUIntBE(2, 1);
-
-                switch (setting) {
-                    case 2: // Response to "get/set mode" command
-                        {
-                            const res = data.readUIntBE(4, 1);
-                            this._state.mode = (res == 0 ? 'active' : 'query');
-                        }
-                        break;
-
-                    case 6: // Response to "get/set sleep mode" command
-                        {
-                            const res = data.readUIntBE(4, 1);
-                            this._state.isSleeping = (res === 0);
-                        }
-                        break;
-
-                    case 7: // Response to "get firmware version" command
-                        {
-                            const year = data.readUIntBE(3, 1);
-                            const month = data.readUIntBE(4, 1);
-                            const day = data.readUIntBE(5, 1);
-
-                            this._state.firmware = `${year}-${month}-${day}`;
-                        }
-                        break;
-
-                    case 8: // Response to "get/set working period" command
-                        {
-                            const res = data.readUIntBE(4, 1);
-                            this._state.workingPeriod = res;
-                        }
-                        break;
-
-                    default:
-                        console.log(`Unhandled setting: ${setting}`);
-                }
-            }
-
-            //#endregion
-
             if (verifyPacket(data)) {
                 var type = data.readUIntBE(1, 1); // Byte offset 1 is command type
 
                 switch (type) {
                     case 0xC0:
-                        handle0xC0(data);
+                        PacketHandlers.handle0xC0(data, this._state);
+
+                        if (this._state.mode == 'active')
+                            this.emit('measure', { 'PM2.5': this._state.pm2p5, 'PM10': this._state.pm10 });
                         break;
 
                     case 0xC5:
-                        handle0xC5(data);
+                        PacketHandlers.handle0xC5(data, this._state);
                         break;
                     default:
-                        console.log('Unknown packet type');
-                        console.log(data);
+                        throw new Error('Unknown packet type: ' + type);
                 }
             }
         });
@@ -143,8 +75,6 @@ class SDS011Wrapper extends EventEmitter {
         this._commandQueue.length = 0;
         this.removeAllListeners();
     }
-
-    //#region Sensor methods
 
     /**
     * Query sensor for it's latest reading. 
@@ -428,6 +358,7 @@ class SDS011Wrapper extends EventEmitter {
             ];
 
             addChecksumToCommandArray(command);
+
             this.port.write(Buffer.from(command)); // Send the command to the sensor
         }
 
@@ -501,9 +432,6 @@ class SDS011Wrapper extends EventEmitter {
         });
     }
 
-    //#endregion
-
-    //#region Command processing queue
     _enqueueCommand(command) {
         if (command.constructor.name !== 'SensorCommand')
             throw new Error('Argument of type "SensorCommand" is required.');
@@ -556,81 +484,6 @@ class SDS011Wrapper extends EventEmitter {
         }
     }
 
-    //#endregion
 }
-
-/**
-  * Structure used to keep all data and functionality needed to run command and retry it if specified condition was not met.
-  * These commands will be sequentially processed  in "_processCommands()" method.
-  *
-  * @ignore
-  */
-class SensorCommand {
-    constructor(sensor, successCallback, failureCallback, prepare, execute, isFullfilled) {
-        this.sensor = sensor;
-        this.successCallback = successCallback; // called when command was sent and confirmed - in most cases promise's resolve function
-        this.failureCallback = failureCallback; // called when command execution was not confirmed - in most cases promise's reject function
-        this.prepare = prepare; // called before running first 'execute()' - most of the time clears existing state
-        this.execute = execute; // do the actual work - build binary command and send it to the sensor
-        this.isFullfilled = isFullfilled; // if this function returns 'false' the command will be retried - up to ${ALLOWED_RETRIES} times. mostly watches internal state for changes.
-    }
-}
-
-//#region Utils
-
-/**
-  *
-  * Check if given buffer is a valid packet of SDS011 sensor
-  * 
-  * @param {Buffer} packet - data packet
-  *
-  * @return {bool} - validity of packet
-  * @ignore
-  */
-function verifyPacket(packet) {
-    if (packet.length != 10)
-        return false;
-
-    if (!verifyHeaderAndTail(packet))
-        return false;
-
-    if (!isChecksumValid(packet, 8, 2, 7))
-        return false
-
-    return true;
-}
-
-function verifyHeaderAndTail(packet) {
-    const header = packet.readUIntBE(0, 1);
-    const tail = packet.readUIntBE(packet.length - 1, 1);
-
-    return (header == 0xAA) && (tail == 0xAB);
-}
-
-function isChecksumValid(packet, checksumByteOffset, dataStartOffset, dataEndOffset) {
-    const targetChecksum = packet.readUIntBE(checksumByteOffset, 1);
-    let calculatedChecksum = 0;
-
-    for (let i = dataStartOffset; i <= dataEndOffset; i++) {
-        calculatedChecksum += packet.readUIntBE(i, 1);
-    }
-
-    calculatedChecksum = calculatedChecksum % 256;
-
-    return calculatedChecksum === targetChecksum;
-}
-
-function addChecksumToCommandArray(command) {
-    let checksum = 0;
-
-    // Calculate checksum for DATA1 - DATA14 range
-    for (let i = 2; i <= 16; i++)
-        checksum += command[i];
-
-    checksum = checksum % 256;
-    command[17] = checksum;
-}
-
-//#endregion
 
 module.exports = SDS011Wrapper;
