@@ -77,9 +77,13 @@ describe('Packet handlers', function () {
   });
 
   it('0xC5 handler: Throws exception on unknown code', function () {
-    const input = Buffer.from([0xAA, 0xC5, 0x08, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAB]);
+    const input = Buffer.from([0xAA, 0xC5, 0x30, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAB]);
 
-    assert.throws(PacketHandlers.handle0xC5.bind(input, state));
+    function shouldFail() {
+      PacketHandlers.handle0xC5(input, state)();
+    }
+
+    assert.throws(shouldFail, Error);
   });
 
 });
