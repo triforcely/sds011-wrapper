@@ -78,4 +78,15 @@ describe('Packet utiliites', function () {
         assert.equal(res, false);
     });
 
+    it('Adds correct checksum to array', function () {
+        //<Buffer >
+
+        let command = [0xAA, 0xB4, 0x08, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0xAB];
+        const checksum = 0x07;
+
+        let res = PacketUtils.addChecksumToCommandArray(command);
+
+        assert.equal(command[17], checksum);
+    });
+
 });
