@@ -80,7 +80,7 @@ describe('Packet handlers', function () {
     const input = Buffer.from([0xAA, 0xC5, 0x30, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAB]);
 
     function shouldFail() {
-      PacketHandlers.handle0xC5(input, state)();
+      PacketHandlers.handle0xC5(input, state);
     }
 
     assert.throws(shouldFail, Error);
