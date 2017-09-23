@@ -1,5 +1,7 @@
 SDS011-Wrapper
 =========
+[![Build Status](https://travis-ci.org/triforcely/sds011-wrapper.svg?branch=master)](https://travis-ci.org/triforcely/sds011-wrapper)
+
 
 Air quality measurements made easy with wrapper library for SDS011 UART interface.
 
