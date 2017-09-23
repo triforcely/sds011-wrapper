@@ -1,3 +1,8 @@
 language: node_js
 node_js:
   - "8"
+
+install:
+  - npm install
+  - npm install istanbul -g
+  - npm install codecov -g
