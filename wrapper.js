@@ -58,7 +58,7 @@ class SDS011Wrapper extends EventEmitter {
         });
 
         // Queue first command to "warm-up" the connection and command queue
-        this.query();
+        this.query().catch( ex => { console.error('SDS011Wrapper error: ' + ex); } );
     }
 
     /**
