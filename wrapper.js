@@ -33,6 +33,11 @@ class SDS011Wrapper extends EventEmitter {
             console.log('Error: ', err.message);
         });
 
+        this._port.on('close', () => {
+            console.log('SDS011Wrapper port closed');
+            this.close();
+        });
+
         /**
           * Listen for incoming data and react: change internal state so queued commands know that they were completed or emit data.
           */
@@ -73,6 +78,7 @@ class SDS011Wrapper extends EventEmitter {
         this._port.close();
         this._state.closed = true;
         this._commandQueue.length = 0;
+        this.emit('close', {});
         this.removeAllListeners();
     }
 
