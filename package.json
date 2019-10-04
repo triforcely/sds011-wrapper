@@ -4,7 +4,7 @@
   "description": "Wrapper library created to simplify usage of SDS011 laser dust sensor in your projects",
   "main": "wrapper.js",
   "scripts": {
-    "test": "istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec tests && codecov"
+    "test": "npx istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec tests && codecov"
   },
   "keywords": [
     "SDS011",
@@ -17,14 +17,15 @@
   "author": "Michal Wilski",
   "license": "MIT",
   "dependencies": {
-    "serialport": "~5.0.0"
+    "serialport": "^7.1.5"
   },
   "repository": {
     "type": "git",
     "url": "git://github.com/triforcely/sds011-wrapper.git"
   },
   "devDependencies": {
-    "mocha": "~3.5.3",
+    "codecov": "^3.6.1",
+    "mocha": "^6.2.1",
     "rewire": "~2.5.2"
   }
 }
