@@ -27,11 +27,9 @@ const sensor = new SDS011Wrapper("COM5");
 ```
 3. Configure
 ```js
-Promise
-    .all([sensor.setReportingMode('active'), sensor.setWorkingPeriod(10)])
-    .then(() => {
-        // everything's set
-    });
+await sensor.setReportingMode('active');
+await sensor.setWorkingPeriod(10);
+// everything's set
 ```
 4. Do awesome things
 ```js
